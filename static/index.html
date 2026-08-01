@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Promptline</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-row">
+    <h1>Promptline</h1>
+    <span id="live-dot" class="live-dot" title="Live updates">●</span>
+  </div>
+
+  <div class="topbar-row controls">
+    <div class="view-toggle" role="tablist">
+      <button data-view="timeline" class="view-btn active">Timeline</button>
+      <button data-view="project" class="view-btn">Project</button>
+      <button data-view="session" class="view-btn">Session</button>
+    </div>
+
+    <div class="sort-toggle" role="tablist">
+      <button data-sort="newest" class="sort-btn active">Newest</button>
+      <button data-sort="oldest" class="sort-btn">Oldest</button>
+    </div>
+
+    <input id="search" type="search" placeholder="Search prompts and responses…" autocomplete="off">
+
+    <select id="project-filter">
+      <option value="">All projects</option>
+    </select>
+  </div>
+</header>
+
+<main id="content"></main>
+
+<div id="empty-state" class="empty-state hidden">
+  No prompts found yet under the watched directory.
+</div>
+
+<template id="entry-card-template">
+  <article class="entry-card">
+    <div class="entry-meta">
+      <span class="entry-time"></span>
+      <span class="entry-project"></span>
+      <span class="entry-session"></span>
+    </div>
+    <div class="entry-prompt"></div>
+    <div class="entry-response-wrap">
+      <div class="entry-response"></div>
+      <button class="show-more-btn hidden">Show more</button>
+    </div>
+  </article>
+</template>
+
+<script src="/app.js"></script>
+</body>
+</html>
