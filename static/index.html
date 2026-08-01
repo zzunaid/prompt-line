@@ -15,21 +15,24 @@
 
   <div class="topbar-row controls">
     <div class="view-toggle" role="tablist">
-      <button data-view="timeline" class="view-btn active">Timeline</button>
+      <button data-view="summary" class="view-btn active">Summary</button>
+      <button data-view="timeline" class="view-btn">Timeline</button>
       <button data-view="project" class="view-btn">Project</button>
       <button data-view="session" class="view-btn">Session</button>
     </div>
 
-    <div class="sort-toggle" role="tablist">
-      <button data-sort="newest" class="sort-btn active">Newest</button>
-      <button data-sort="oldest" class="sort-btn">Oldest</button>
+    <div id="filter-controls" class="filter-controls hidden">
+      <div class="sort-toggle" role="tablist">
+        <button data-sort="newest" class="sort-btn active">Newest</button>
+        <button data-sort="oldest" class="sort-btn">Oldest</button>
+      </div>
+
+      <input id="search" type="search" placeholder="Search prompts and responses…" autocomplete="off">
+
+      <select id="project-filter">
+        <option value="">All projects</option>
+      </select>
     </div>
-
-    <input id="search" type="search" placeholder="Search prompts and responses…" autocomplete="off">
-
-    <select id="project-filter">
-      <option value="">All projects</option>
-    </select>
   </div>
 </header>
 
@@ -46,12 +49,24 @@
       <span class="entry-project"></span>
       <span class="entry-session"></span>
     </div>
-    <div class="entry-prompt"></div>
-    <div class="entry-response-wrap">
-      <div class="entry-response"></div>
+    <div class="entry-block">
+      <span class="entry-label">You</span>
+      <div class="entry-prompt collapsible"></div>
+      <button class="show-more-btn hidden">Show more</button>
+    </div>
+    <div class="entry-block">
+      <span class="entry-label">Claude</span>
+      <div class="entry-response collapsible"></div>
       <button class="show-more-btn hidden">Show more</button>
     </div>
   </article>
+</template>
+
+<template id="stat-tile-template">
+  <div class="stat-tile">
+    <div class="stat-value"></div>
+    <div class="stat-label"></div>
+  </div>
 </template>
 
 <script src="/app.js"></script>

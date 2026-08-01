@@ -21,13 +21,15 @@ from parser import find_session_files, parse_session_file
 
 STATIC_DIR = Path(__file__).parent / "static"
 POLL_INTERVAL_SECONDS = 2.0
+DEFAULT_MAX_SESSIONS_PER_PROJECT = 3
 
 
 class Store:
     """In-memory cache of parsed sessions, kept fresh by a poller thread."""
 
-    def __init__(self, projects_root):
+    def __init__(self, projects_root, max_sessions_per_project=DEFAULT_MAX_SESSIONS_PER_PROJECT):
         self.projects_root = Path(projects_root)
+        self.max_sessions_per_project = max_sessions_per_project
         self._lock = threading.Lock()
         self._sessions = {}  # path (str) -> parsed session dict
         self._mtimes = {}  # path (str) -> mtime float
@@ -56,11 +58,29 @@ class Store:
     def snapshot(self):
         with self._lock:
             sessions = list(self._sessions.values())
+
+        by_project = {}
+        for s in sessions:
+            by_project.setdefault(s["project"], []).append(s)
+
+        # Cap to the N most recently started sessions per project, computed
+        # fresh on every call so a session that starts getting new prompts
+        # again can re-enter the window. Full history stays on disk; this
+        # only limits how much gets held in the API response / rendered.
+        kept_sessions = []
+        project_session_counts = {}
+        for project, group in by_project.items():
+            group.sort(key=lambda s: s["startTime"] or "", reverse=True)
+            kept = group[: self.max_sessions_per_project]
+            kept_sessions.extend(kept)
+            project_session_counts[project] = {"shown": len(kept), "total": len(group)}
+
         entries = []
         projects = set()
-        for s in sessions:
+        for s in kept_sessions:
             projects.add(s["project"])
             entries.extend(s["entries"])
+
         sessions_meta = [
             {
                 "sessionId": s["sessionId"],
@@ -69,12 +89,14 @@ class Store:
                 "startTime": s["startTime"],
                 "promptCount": len(s["entries"]),
             }
-            for s in sessions
+            for s in kept_sessions
         ]
         return {
             "entries": entries,
             "projects": sorted(projects),
             "sessions": sessions_meta,
+            "projectSessionCounts": project_session_counts,
+            "maxSessionsPerProject": self.max_sessions_per_project,
         }
 
     def poll_once(self):
@@ -203,9 +225,16 @@ def main():
         help="Root directory to scan for *.jsonl session logs (default: ~/.claude/projects)",
     )
     parser.add_argument("--port", type=int, default=8787)
+    parser.add_argument(
+        "--max-sessions-per-project",
+        type=int,
+        default=DEFAULT_MAX_SESSIONS_PER_PROJECT,
+        help="Only show the N most recently started sessions per project (default: 3). "
+        "Nothing on disk is touched; this only limits what's loaded into the UI.",
+    )
     args = parser.parse_args()
 
-    store = Store(args.dir)
+    store = Store(args.dir, max_sessions_per_project=args.max_sessions_per_project)
     store.poll_once()  # initial synchronous load so the first request has data
 
     stop_event = threading.Event()
@@ -219,7 +248,8 @@ def main():
     print(f"Promptline serving http://127.0.0.1:{args.port}")
     print(f"Watching: {store.projects_root}")
     print(f"Loaded {len(snap['entries'])} prompts across {len(snap['sessions'])} sessions, "
-          f"{len(snap['projects'])} projects.")
+          f"{len(snap['projects'])} projects (showing up to {args.max_sessions_per_project} "
+          f"most recent sessions per project).")
 
     try:
         httpd.serve_forever()

@@ -52,22 +52,39 @@ By default it watches `~/.claude/projects`. Override with:
 python3 server.py --dir /path/to/other/projects --port 9000
 ```
 
+By default it only loads the **3 most recent sessions per project**, so a
+project with months of history doesn't flood the UI (or memory) with old
+sessions. Override with:
+
+```bash
+python3 server.py --max-sessions-per-project 10
+```
+
+This only limits what's loaded into the app — nothing on disk is touched,
+and a session that starts getting new prompts again re-enters the window on
+the next poll.
+
 Stop it with `Ctrl+C`.
 
 ## Using it
 
-- **Timeline / Project / Session** toggle in the header switches how prompts
-  are grouped:
+- **Summary** is the default view: a dashboard with prompt/session/project
+  counts, a 14-day activity chart, and your top projects by prompt volume
+  (click one to jump into Timeline filtered to it).
+- **Timeline / Project / Session** toggle switches how prompts are grouped:
   - **Timeline** — every prompt across every project, one chronological feed.
   - **Project** — grouped by the working directory Claude Code was run in;
-    each project is collapsible.
+    each project is collapsible, and shows how many of its sessions are
+    currently loaded if some were capped.
   - **Session** — grouped by session (one `.jsonl` file), showing when the
     session started and how many prompts it contains.
-- **Newest / Oldest** toggles sort order within whichever view is active.
+- **Newest / Oldest** toggles sort order within whichever of those three
+  views is active.
 - The **search box** filters by keyword across both your prompts and
   Claude's responses; the **project dropdown** narrows to one project.
-- Each card shows your prompt and Claude's text response to it; long
-  responses collapse with a "Show more" toggle.
+- Each card shows your prompt ("You") and Claude's text response ("Claude")
+  to it; both truncate to a few lines by default with a "Show more" toggle,
+  so scanning a long history doesn't mean scrolling past walls of text.
 - A green dot in the header means the live-update connection is active; it
   greys out if the connection drops (e.g. you closed your laptop lid).
 

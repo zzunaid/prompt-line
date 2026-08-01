@@ -3,7 +3,7 @@
 
   const state = {
     data: null,
-    view: "timeline",
+    view: "summary",
     sort: "newest",
     search: "",
     projectFilter: "",
@@ -16,7 +16,9 @@
   const liveDot = document.getElementById("live-dot");
   const searchEl = document.getElementById("search");
   const projectFilterEl = document.getElementById("project-filter");
+  const filterControlsEl = document.getElementById("filter-controls");
   const cardTemplate = document.getElementById("entry-card-template");
+  const statTileTemplate = document.getElementById("stat-tile-template");
 
   function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, (ch) => (
@@ -56,6 +58,8 @@
     return "…/" + parts.slice(-2).join("/");
   }
 
+  // ---------- entry cards (timeline / project / session views) ----------
+
   function buildCard(entry, query) {
     const node = cardTemplate.content.firstElementChild.cloneNode(true);
     node.dataset.id = entry.id;
@@ -76,22 +80,27 @@
     if (entry.response) {
       responseEl.innerHTML = highlight(escapeHtml(entry.response), query);
     } else {
-      responseEl.innerHTML = "<em>(no text response captured)</em>";
+      responseEl.classList.add("empty");
+      responseEl.textContent = "(no text response captured)";
     }
 
     return node;
   }
 
   function attachShowMoreHandlers(root) {
-    root.querySelectorAll(".entry-response-wrap").forEach((wrap) => {
-      const resp = wrap.querySelector(".entry-response");
-      const btn = wrap.querySelector(".show-more-btn");
-      if (resp.scrollHeight > resp.clientHeight + 4) {
+    root.querySelectorAll(".entry-block").forEach((block) => {
+      const collapsible = block.querySelector(".collapsible");
+      const btn = block.querySelector(".show-more-btn");
+      if (!collapsible || !btn) return;
+      collapsible.classList.remove("expanded", "has-overflow");
+      btn.classList.add("hidden");
+      if (collapsible.scrollHeight > collapsible.clientHeight + 4) {
+        collapsible.classList.add("has-overflow");
         btn.classList.remove("hidden");
         btn.textContent = "Show more";
         btn.onclick = () => {
-          resp.classList.toggle("expanded");
-          btn.textContent = resp.classList.contains("expanded") ? "Show less" : "Show more";
+          collapsible.classList.toggle("expanded");
+          btn.textContent = collapsible.classList.contains("expanded") ? "Show less" : "Show more";
         };
       }
     });
@@ -161,9 +170,157 @@
     contentEl.appendChild(frag);
   }
 
+  // ---------- summary dashboard ----------
+
+  function buildStatTile(value, label) {
+    const node = statTileTemplate.content.firstElementChild.cloneNode(true);
+    node.querySelector(".stat-value").textContent = value;
+    node.querySelector(".stat-label").textContent = label;
+    return node;
+  }
+
+  function buildActivityChart(entries) {
+    const days = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      days.push(d);
+    }
+    const counts = days.map(() => 0);
+    entries.forEach((e) => {
+      if (!e.timestamp) return;
+      const t = new Date(e.timestamp);
+      t.setHours(0, 0, 0, 0);
+      const idx = days.findIndex((d) => d.getTime() === t.getTime());
+      if (idx >= 0) counts[idx]++;
+    });
+    const max = Math.max(1, ...counts);
+
+    const wrap = document.createElement("div");
+    wrap.className = "activity-chart";
+    days.forEach((d, i) => {
+      const col = document.createElement("div");
+      col.className = "activity-bar-col";
+
+      const bar = document.createElement("div");
+      bar.className = "activity-bar" + (counts[i] > 0 ? " has-activity" : "");
+      const heightPct = counts[i] > 0 ? Math.max(6, Math.round((counts[i] / max) * 100)) : 3;
+      bar.style.height = heightPct + "%";
+      bar.title = `${counts[i]} prompt${counts[i] === 1 ? "" : "s"} · ${d.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+      col.appendChild(bar);
+
+      const label = document.createElement("div");
+      label.className = "activity-bar-label";
+      label.textContent = String(d.getDate());
+      col.appendChild(label);
+
+      wrap.appendChild(col);
+    });
+    return wrap;
+  }
+
+  function buildTopProjects(entries) {
+    const counts = new Map();
+    entries.forEach((e) => counts.set(e.project, (counts.get(e.project) || 0) + 1));
+    const sorted = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 6);
+
+    const wrap = document.createElement("div");
+    wrap.className = "top-projects";
+
+    if (sorted.length === 0) {
+      wrap.innerHTML = '<div class="summary-empty">Nothing tracked yet.</div>';
+      return wrap;
+    }
+
+    const max = sorted[0][1];
+    sorted.forEach(([project, count]) => {
+      const pct = Math.max(4, Math.round((count / max) * 100));
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "top-project-row";
+      row.title = `Show ${project} in Timeline`;
+      row.innerHTML = `
+        <span class="top-project-name">${escapeHtml(shortenProject(project))}</span>
+        <span class="top-project-count">${count}</span>
+        <span class="top-project-bar-track"><span class="top-project-bar-fill" style="width:${pct}%"></span></span>
+      `;
+      row.addEventListener("click", () => {
+        state.projectFilter = project;
+        state.view = "timeline";
+        document.querySelectorAll(".view-btn").forEach((b) => b.classList.toggle("active", b.dataset.view === "timeline"));
+        projectFilterEl.value = project;
+        updateFilterControlsVisibility();
+        render();
+      });
+      wrap.appendChild(row);
+    });
+    return wrap;
+  }
+
+  function renderSummary() {
+    const data = state.data;
+    const entries = data.entries;
+
+    if (entries.length === 0) {
+      emptyStateEl.classList.remove("hidden");
+      return;
+    }
+    emptyStateEl.classList.add("hidden");
+
+    const timestamps = entries.map((e) => e.timestamp).filter(Boolean).sort();
+    const since = timestamps.length ? formatTime(timestamps[0]) : "—";
+
+    const grid = document.createElement("div");
+    grid.className = "summary-grid";
+    [
+      [entries.length.toLocaleString(), "Prompts shown"],
+      [data.sessions.length.toLocaleString(), "Sessions tracked"],
+      [data.projects.length.toLocaleString(), "Projects"],
+      [since, "Earliest prompt shown"],
+    ].forEach(([value, label]) => grid.appendChild(buildStatTile(value, label)));
+    contentEl.appendChild(grid);
+
+    const activitySection = document.createElement("div");
+    activitySection.className = "summary-section";
+    activitySection.innerHTML = "<h2>Activity, last 14 days</h2>";
+    activitySection.appendChild(buildActivityChart(entries));
+    contentEl.appendChild(activitySection);
+
+    const projectsSection = document.createElement("div");
+    projectsSection.className = "summary-section";
+    projectsSection.innerHTML = "<h2>Top projects</h2>";
+    projectsSection.appendChild(buildTopProjects(entries));
+    contentEl.appendChild(projectsSection);
+
+    if (data.maxSessionsPerProject) {
+      const note = document.createElement("div");
+      note.className = "summary-empty";
+      note.style.textAlign = "center";
+      note.style.marginTop = "4px";
+      note.textContent = `Showing the ${data.maxSessionsPerProject} most recent sessions per project.`;
+      contentEl.appendChild(note);
+    }
+  }
+
+  // ---------- top-level render ----------
+
+  function updateFilterControlsVisibility() {
+    filterControlsEl.classList.toggle("hidden", state.view === "summary");
+  }
+
   function render() {
     const data = state.data;
     if (!data) return;
+
+    contentEl.innerHTML = "";
+    updateFilterControlsVisibility();
+
+    if (state.view === "summary") {
+      renderSummary();
+      return;
+    }
 
     let entries = data.entries.slice();
 
@@ -178,8 +335,6 @@
     if (state.projectFilter) {
       entries = entries.filter((e) => e.project === state.projectFilter);
     }
-
-    contentEl.innerHTML = "";
 
     if (entries.length === 0) {
       emptyStateEl.classList.remove("hidden");
@@ -196,10 +351,20 @@
       renderGroups(
         entries,
         (e) => e.project,
-        (key, groupEntries) => ({
-          title: shortenProject(key),
-          sub: `${groupEntries.length} prompt${groupEntries.length === 1 ? "" : "s"}`,
-        }),
+        (key, groupEntries) => {
+          const counts = data.projectSessionCounts && data.projectSessionCounts[key];
+          let sessionsNote = "";
+          if (counts) {
+            sessionsNote =
+              counts.total > counts.shown
+                ? ` · ${counts.shown} of ${counts.total} sessions shown`
+                : ` · ${counts.shown} session${counts.shown === 1 ? "" : "s"}`;
+          }
+          return {
+            title: shortenProject(key),
+            sub: `${groupEntries.length} prompt${groupEntries.length === 1 ? "" : "s"}${sessionsNote}`,
+          };
+        },
         state.search.trim()
       );
     } else {
