@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Promptline</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-row brand-row">
+    <h1 class="brand">promptline<span class="cursor">_</span></h1>
+    <span id="live-dot" class="live-dot" title="Live updates">●</span>
+  </div>
+
+  <div id="filter-controls" class="topbar-row filter-controls hidden">
+    <button type="button" id="back-btn" class="pill-btn ghost-pill">&lsaquo; back</button>
+
+    <div class="pill-toggle" role="tablist">
+      <button data-sort="newest" class="pill-btn sort-btn active">newest</button>
+      <button data-sort="oldest" class="pill-btn sort-btn">oldest</button>
+    </div>
+
+    <label class="search-wrap">
+      <span class="prompt-glyph">&gt;</span>
+      <input id="search" type="search" placeholder="search…" autocomplete="off">
+    </label>
+
+    <span id="date-chip" class="date-chip hidden">
+      <span class="date-chip-label"></span>
+      <button type="button" class="date-chip-clear" aria-label="Clear date filter">&times;</button>
+    </span>
+
+    <select id="project-filter">
+      <option value="">all projects</option>
+    </select>
+
+    <button type="button" id="copy-all-btn" class="pill-btn ghost-pill">copy transcript</button>
+  </div>
+</header>
+
+<main id="content"></main>
+
+<div id="empty-state" class="empty-state hidden">
+  nothing found yet under the watched directory.
+</div>
+
+<template id="entry-card-template">
+  <article class="entry-card">
+    <div class="entry-meta">
+      <span class="entry-time"></span>
+      <span class="entry-project"></span>
+      <span class="entry-session"></span>
+      <button type="button" class="entry-copy-btn" title="Copy this exchange">copy</button>
+    </div>
+    <div class="entry-block">
+      <span class="entry-label">you</span>
+      <div class="entry-prompt collapsible"></div>
+      <button class="show-more-btn hidden">more</button>
+    </div>
+    <div class="entry-block">
+      <span class="entry-label">claude</span>
+      <div class="entry-response collapsible"></div>
+      <button class="show-more-btn hidden">more</button>
+    </div>
+  </article>
+</template>
+
+<template id="stat-tile-template">
+  <div class="stat-tile">
+    <span class="stat-label"></span>
+    <span class="stat-value"></span>
+  </div>
+</template>
+
+<script src="/app.js"></script>
+</body>
+</html>

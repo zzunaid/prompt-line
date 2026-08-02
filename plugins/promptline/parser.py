@@ -14,6 +14,11 @@ Log format notes (reverse-engineered from real files under ~/.claude/projects/):
   prompt, up to the next genuine prompt, to reconstruct what was shown.
 - "cwd" on a line gives the project directory. "isSidechain": true marks
   subagent-internal messages, which are excluded from the timeline.
+- Each "assistant" line also carries message.model and message.usage
+  (input/output/cache token counts). These repeat on every content-block
+  line that shares a message id, so they're counted once per unique id and
+  collected separately from the prompt/response text, for the summary
+  dashboard's token and model stats.
 """
 
 import json
@@ -89,6 +94,8 @@ def parse_session_file(path):
     current = None
     response_parts = []
     last_message_id = None
+    assistant_messages = []
+    seen_assistant_ids = set()
 
     def flush():
         if current is not None:
@@ -139,18 +146,46 @@ def parse_session_file(path):
                 response_parts.append(text)
                 last_message_id = message_id
 
+            # usage/model are set once per message but repeated on every
+            # content-block line sharing that message id - count each
+            # message only once.
+            if message_id and message_id not in seen_assistant_ids:
+                seen_assistant_ids.add(message_id)
+                usage = message.get("usage") or {}
+                tokens = sum(
+                    v
+                    for k, v in usage.items()
+                    if k
+                    in (
+                        "input_tokens",
+                        "output_tokens",
+                        "cache_creation_input_tokens",
+                        "cache_read_input_tokens",
+                    )
+                    and isinstance(v, (int, float))
+                )
+                assistant_messages.append(
+                    {
+                        "timestamp": obj.get("timestamp"),
+                        "model": message.get("model"),
+                        "tokens": int(tokens),
+                    }
+                )
+
     flush()
 
     if not entries:
         return None
 
     entries.sort(key=lambda e: e["timestamp"] or "")
+    assistant_messages.sort(key=lambda m: m["timestamp"] or "")
     return {
         "sessionId": session_id,
         "sessionFile": path.name,
         "project": project,
         "startTime": entries[0]["timestamp"],
         "entries": entries,
+        "assistantMessages": assistant_messages,
     }
 
 

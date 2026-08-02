@@ -1,0 +1,11 @@
+{
+  "name": "promptline",
+  "owner": { "name": "zzunaid" },
+  "plugins": [
+    {
+      "name": "promptline",
+      "source": "./plugins/promptline",
+      "description": "Local, read-only visual timeline of your Claude Code prompt history"
+    }
+  ]
+}

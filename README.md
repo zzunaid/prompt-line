@@ -66,37 +66,70 @@ the next poll.
 
 Stop it with `Ctrl+C`.
 
+### Installing as a Claude Code plugin
+
+This repo also works as its own Claude Code plugin marketplace, so you can
+launch the dashboard from inside a Claude Code session instead of a
+terminal:
+
+```
+/plugin marketplace add zzunaid/prompt-line
+/plugin install promptline@promptline
+/reload-plugins
+```
+
+Then run `/promptline:dashboard` any time to start the server in the
+background and get the URL to open. The plugin bundles the exact same code
+as running `python3 server.py` directly — see [Files](#files) below for
+where it actually lives.
+
 ## Using it
 
-- **Summary** is the default view: a dashboard with prompt/session/project
-  counts, a 14-day activity chart, and your top projects by prompt volume
-  (click one to jump into Timeline filtered to it).
-- **Timeline / Project / Session** toggle switches how prompts are grouped:
-  - **Timeline** — every prompt across every project, one chronological feed.
-  - **Project** — grouped by the working directory Claude Code was run in;
-    each project is collapsible, and shows how many of its sessions are
-    currently loaded if some were capped.
-  - **Session** — grouped by session (one `.jsonl` file), showing when the
-    session started and how many prompts it contains.
-- **Newest / Oldest** toggles sort order within whichever of those three
-  views is active.
-- The **search box** filters by keyword across both your prompts and
-  Claude's responses; the **project dropdown** narrows to one project.
-- Each card shows your prompt ("You") and Claude's text response ("Claude")
-  to it; both truncate to a few lines by default with a "Show more" toggle,
-  so scanning a long history doesn't mean scrolling past walls of text.
+- **Overview** is the default view: stat tiles (sessions, messages, total
+  tokens, active days, current/longest streak, peak hour, favorite model),
+  a GitHub-style activity heatmap, and a token comparison against *The
+  Little Prince* for scale. Click any day in the heatmap to drill into that
+  day's prompts.
+- **Projects** breaks the same stats down per project (working directory),
+  each with its own session/message/token/model summary and a "last active"
+  timestamp. Click a project to drill into its prompts.
+- **All / 1d / 7d / 30d** in the top-right scopes every stat and the heatmap
+  to that window.
+- Drilling into a day or project opens a flat, chronological prompt feed —
+  a small vertical rail with one dot per prompt, "you" / "claude" for each
+  turn. From there: **Newest / Oldest** sort, a **search box** across both
+  prompts and responses, the active date filter (clearable), and a project
+  dropdown to pivot to a different project without going back. There's no
+  separate top-level "Timeline" tab — this feed is only reached by drilling
+  in from Overview or Projects.
+- Every prompt has a **copy** button that puts that exchange (prompt +
+  response) on your clipboard as plain text, ready to paste into a new
+  Claude conversation for context. The **copy transcript** button in the
+  feed's toolbar does the same for everything currently visible — respecting
+  whatever search/date/project filter is active — so you can hand off a
+  whole day or project's worth of history at once.
+- Long prompts/responses truncate to a few lines with a "more" toggle, so
+  scanning a long history doesn't mean scrolling past walls of text.
 - A green dot in the header means the live-update connection is active; it
   greys out if the connection drops (e.g. you closed your laptop lid).
 
 ## Files
 
 ```
-server.py        stdlib HTTP server: /api/data, /api/stream (SSE), static files
-parser.py        JSONL -> prompt/response entries
-static/
-  index.html     page shell
-  style.css      styling
-  app.js         view/sort/search/filter logic, SSE client
+server.py                     thin shim - delegates to plugins/promptline/server.py,
+                               so `python3 server.py` keeps working from the repo root
+.claude-plugin/
+  marketplace.json            lets this repo be added via /plugin marketplace add
+plugins/promptline/
+  .claude-plugin/plugin.json  plugin manifest
+  skills/dashboard/SKILL.md   the /promptline:dashboard command
+  server.py                   the real implementation: stdlib HTTP server,
+                               /api/data, /api/stream (SSE), static files
+  parser.py                   JSONL -> prompt/response entries
+  static/
+    index.html                page shell
+    style.css                 styling
+    app.js                    view/sort/search/filter logic, SSE client
 ```
 
 ## Notes on the log format
@@ -121,3 +154,10 @@ by reading real log files directly:
   other.
 - Any line that fails to parse as JSON, or has an unexpected shape, is
   skipped rather than crashing the parse.
+- Token/model stats come from `message.model` and `message.usage` on
+  `"assistant"` lines. Both repeat on every content-block line that shares
+  a message id (thinking/text/tool-use are logged as separate lines of the
+  same message), so each is counted once per unique id. "Total tokens" sums
+  input, output, cache-creation, and cache-read tokens across those
+  messages — it's cumulative usage, not distinct content, so cache-heavy
+  sessions can look large.
