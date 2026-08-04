@@ -83,6 +83,15 @@ background and get the URL to open. The plugin bundles the exact same code
 as running `python3 server.py` directly — see [Files](#files) below for
 where it actually lives.
 
+**If you're developing on this repo:** installing the plugin copies its
+code into `~/.claude/plugins/cache/promptline/promptline/<version>/` - a
+separate snapshot, not a live link back to your clone. Editing files here
+won't affect what `/promptline:dashboard` runs until you bump the version
+in `plugins/promptline/.claude-plugin/plugin.json` and reinstall. While
+iterating, just run `python3 server.py` directly from your working copy
+instead. Both point at the same `~/.claude/projects/` by default, so either
+one shows the same data - it's only the *code* that's a separate copy.
+
 ## Using it
 
 - **Overview** is the default view: stat tiles (sessions, messages, total
