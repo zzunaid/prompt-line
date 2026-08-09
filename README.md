@@ -4,7 +4,7 @@ A local, read-only visual timeline of everything you've typed into Claude
 Code, reconstructed from your own session logs so you can recover context
 you've forgotten across projects and sessions.
 
-![Promptline overview dashboard](docs/overview.jpg)
+![Promptline: Overview dashboard, drilling into a day, and the Projects tab](docs/demo.gif)
 
 ## How it works
 
