@@ -4,6 +4,8 @@ A local, read-only visual timeline of everything you've typed into Claude
 Code, reconstructed from your own session logs so you can recover context
 you've forgotten across projects and sessions.
 
+![Promptline overview dashboard](docs/overview.jpg)
+
 ## How it works
 
 Claude Code writes one JSONL file per session under `~/.claude/projects/`.
@@ -170,3 +172,11 @@ by reading real log files directly:
   input, output, cache-creation, and cache-read tokens across those
   messages — it's cumulative usage, not distinct content, so cache-heavy
   sessions can look large.
+- Typing a slash command (e.g. `/promptline:dashboard`) doesn't log as that
+  literal text - Claude Code wraps it in `<command-name>`/`<command-args>`
+  tags, which get reconstructed back into the plain command you typed.
+- Not everything logged as a `"user"` turn was actually typed: synthetic
+  context Claude Code injects into the conversation (`"isMeta": true`,
+  e.g. a skill's own instruction body) and system-fired turns
+  (`"promptSource": "system"` - task-notifications, scheduled wakeups) are
+  excluded from the timeline the same way sidechain messages are.

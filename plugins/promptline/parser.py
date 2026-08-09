@@ -25,6 +25,13 @@ Log format notes (reverse-engineered from real files under ~/.claude/projects/):
   <command-args>...</command-args> (tag order varies, command-args is
   omitted when there are no arguments). That's reconstructed back into the
   plain "/foo args" you actually typed rather than shown as raw tags.
+- Not every "user" line is something typed, even when it has real text and
+  isn't isSidechain: "isMeta": true marks synthetic context Claude Code
+  injects into the conversation (e.g. a skill's own instruction body), and
+  "promptSource": "system" marks system-fired turns (task-notifications,
+  scheduled wakeups) - both are excluded from the timeline. They still act
+  as a turn boundary (so the *previous* real prompt's response is closed
+  off correctly), the resulting entry is just dropped rather than shown.
 """
 
 import json
@@ -127,7 +134,7 @@ def parse_session_file(path):
     seen_assistant_ids = set()
 
     def flush():
-        if current is not None:
+        if current is not None and not current.get("synthetic"):
             entries.append(
                 {
                     "id": current["uuid"],
@@ -154,6 +161,7 @@ def parse_session_file(path):
             current = {
                 "uuid": obj.get("uuid") or f"{session_id}:{len(entries)}",
                 "timestamp": obj.get("timestamp"),
+                "synthetic": bool(obj.get("isMeta")) or obj.get("promptSource") == "system",
             }
             current["text"] = prompt_text
             response_parts = []
