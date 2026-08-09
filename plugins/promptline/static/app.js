@@ -21,6 +21,7 @@
   const projectFilterEl = document.getElementById("project-filter");
   const filterControlsEl = document.getElementById("filter-controls");
   const backBtnEl = document.getElementById("back-btn");
+  const brandBtnEl = document.getElementById("brand-btn");
   const copyAllBtnEl = document.getElementById("copy-all-btn");
   const dateChipEl = document.getElementById("date-chip");
   const dateChipLabelEl = dateChipEl.querySelector(".date-chip-label");
@@ -238,12 +239,27 @@
 
     node.querySelector(".entry-prompt").innerHTML = highlight(escapeHtml(entry.prompt || ""), query);
 
+    const responseBlock = node.querySelector(".entry-response-block");
     const responseEl = node.querySelector(".entry-response");
+    const responseToggle = node.querySelector(".response-toggle-btn");
+
     if (entry.response) {
       responseEl.innerHTML = highlight(escapeHtml(entry.response), query);
+      // A search match hiding inside a collapsed response would defeat the
+      // point of highlighting it - expand automatically when that happens.
+      if (query && entry.response.toLowerCase().includes(query.toLowerCase())) {
+        responseBlock.classList.remove("collapsed");
+        responseToggle.textContent = "hide response";
+      }
+      responseToggle.addEventListener("click", () => {
+        const collapsed = responseBlock.classList.toggle("collapsed");
+        responseToggle.textContent = collapsed ? "show response" : "hide response";
+      });
     } else {
       responseEl.classList.add("empty");
       responseEl.textContent = "(no text response captured)";
+      responseBlock.classList.remove("collapsed");
+      responseToggle.remove();
     }
 
     return node;
@@ -393,8 +409,35 @@
     const wrap = document.createElement("div");
     wrap.className = "heatmap";
 
+    const tooltip = document.createElement("div");
+    tooltip.className = "heatmap-tooltip";
+
+    function showTooltip(cell, label) {
+      const cellRect = cell.getBoundingClientRect();
+      const wrapRect = wrap.getBoundingClientRect();
+      tooltip.textContent = label;
+      tooltip.style.left = cellRect.left - wrapRect.left + cellRect.width / 2 + "px";
+      tooltip.style.top = cellRect.top - wrapRect.top + "px";
+      tooltip.classList.add("visible");
+    }
+    function hideTooltip() {
+      tooltip.classList.remove("visible");
+    }
+
+    const cursorDot = document.createElement("div");
+    cursorDot.className = "heatmap-cursor-dot";
+
     const weeksWrap = document.createElement("div");
     weeksWrap.className = "heatmap-weeks";
+    weeksWrap.addEventListener("mousemove", (ev) => {
+      const wrapRect = wrap.getBoundingClientRect();
+      cursorDot.style.left = ev.clientX - wrapRect.left + "px";
+      cursorDot.style.top = ev.clientY - wrapRect.top + "px";
+      cursorDot.classList.add("visible");
+    });
+    weeksWrap.addEventListener("mouseleave", () => {
+      cursorDot.classList.remove("visible");
+    });
 
     for (let w = 0; w < totalCells / 7; w++) {
       const weekCol = document.createElement("div");
@@ -425,8 +468,11 @@
           cell.type = "button";
           cell.className = `heatmap-cell level-${level}`;
           const label = `${count} prompt${count === 1 ? "" : "s"} · ${dateLabel}`;
-          cell.title = label;
           cell.setAttribute("aria-label", label);
+          cell.addEventListener("mouseenter", () => showTooltip(cell, label));
+          cell.addEventListener("mouseleave", hideTooltip);
+          cell.addEventListener("focus", () => showTooltip(cell, label));
+          cell.addEventListener("blur", hideTooltip);
           cell.addEventListener("click", () => {
             enterTimeline({ date: key });
           });
@@ -436,6 +482,8 @@
       weeksWrap.appendChild(weekCol);
     }
     wrap.appendChild(weeksWrap);
+    wrap.appendChild(cursorDot);
+    wrap.appendChild(tooltip);
     return wrap;
   }
 
@@ -728,6 +776,12 @@
   }
 
   function wireControls() {
+    brandBtnEl.addEventListener("click", () => {
+      resetDrilldownFilters();
+      state.view = "overview";
+      render();
+    });
+
     backBtnEl.addEventListener("click", () => {
       state.view = state.previousView || "overview";
       resetDrilldownFilters();

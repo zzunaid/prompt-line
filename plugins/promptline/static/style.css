@@ -11,6 +11,7 @@
   --accent: #9085e9;
   --accent-dim: #6d63c9;
   --good: #0ca30c;
+  --cursor-glow: #ff8a3d;
   --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo,
     Consolas, "Liberation Mono", monospace;
 }
@@ -45,15 +46,22 @@ body {
   gap: 16px;
 }
 
-.brand-row { justify-content: space-between; margin-bottom: 12px; }
+.brand-row { justify-content: space-between; }
+.brand-row h1 { margin: 0; font-size: 0; line-height: 0; }
 
 .brand {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
   font-size: 15px;
   font-weight: 500;
-  margin: 0;
   letter-spacing: -0.01em;
   color: var(--ink);
+  cursor: pointer;
 }
+.brand:hover { color: var(--accent); }
+.brand:hover .cursor { color: var(--accent); }
 
 .cursor {
   color: var(--accent);
@@ -76,6 +84,9 @@ body {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  max-width: 760px;
+  margin: 20px auto 0;
+  padding: 0 24px;
 }
 .filter-controls.hidden { display: none; }
 
@@ -269,6 +280,28 @@ main {
 
 /* ---------- heatmap ---------- */
 
+.heatmap { position: relative; }
+
+.heatmap-tooltip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translate(-50%, calc(-100% - 8px));
+  background: var(--surface-raised);
+  border: 1px solid var(--gridline);
+  color: var(--ink);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s;
+  z-index: 5;
+}
+.heatmap-tooltip.visible { opacity: 1; }
+
 .heatmap-weeks {
   display: grid;
   grid-auto-flow: column;
@@ -300,12 +333,36 @@ main {
 .heatmap-cell.level-3 { background: color-mix(in srgb, var(--accent) 80%, var(--page)); }
 .heatmap-cell.level-4 { background: var(--accent); }
 
-button.heatmap-cell { cursor: pointer; }
-button.heatmap-cell:hover { box-shadow: 0 0 0 1px var(--ink); }
+button.heatmap-cell {
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+button.heatmap-cell:hover {
+  box-shadow: 0 0 0 1px var(--cursor-glow), 0 0 14px 3px color-mix(in srgb, var(--cursor-glow) 70%, transparent);
+  transform: scale(1.12);
+}
 button.heatmap-cell:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--cursor-glow);
   outline-offset: 2px;
 }
+
+.heatmap-cursor-dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--cursor-glow) 70%, transparent) 0%, transparent 72%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  mix-blend-mode: screen;
+  filter: blur(3px);
+  z-index: 6;
+}
+.heatmap-cursor-dot.visible { opacity: 1; }
 
 .heatmap-legend {
   display: flex;
@@ -381,6 +438,7 @@ button.heatmap-cell:focus-visible {
 
 @media (max-width: 560px) {
   .topbar { padding: 12px 16px; }
+  .filter-controls { padding: 0 16px; }
   main { padding: 24px 16px 48px; }
   .dashboard-card { padding: 16px; border-radius: 12px; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
@@ -467,7 +525,8 @@ main > .entry-card:last-child { padding-bottom: 4px; }
   padding-top: 1px;
 }
 
-.entry-block > div.collapsible { flex: 1; min-width: 0; }
+.entry-block > div.collapsible,
+.entry-block > div.entry-response { flex: 1; min-width: 0; }
 
 .entry-prompt {
   white-space: pre-wrap;
@@ -483,6 +542,21 @@ main > .entry-card:last-child { padding-bottom: 4px; }
   line-height: 1.55;
 }
 .entry-response.empty { color: var(--ink-muted); font-style: italic; }
+
+.entry-response-block.collapsed .entry-response { display: none; }
+
+.response-toggle-btn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11.5px;
+  padding: 0;
+  margin-top: 1px;
+}
+.response-toggle-btn:hover { text-decoration: underline; }
 
 .collapsible {
   max-height: 5.5em;

@@ -19,10 +19,33 @@ Log format notes (reverse-engineered from real files under ~/.claude/projects/):
   line that shares a message id, so they're counted once per unique id and
   collected separately from the prompt/response text, for the summary
   dashboard's token and model stats.
+- Typing a slash command (e.g. "/promptline:dashboard") doesn't log as that
+  literal text - Claude Code wraps it as
+  <command-name>/foo</command-name><command-message>...</command-message>
+  <command-args>...</command-args> (tag order varies, command-args is
+  omitted when there are no arguments). That's reconstructed back into the
+  plain "/foo args" you actually typed rather than shown as raw tags.
 """
 
 import json
+import re
 from pathlib import Path
+
+_COMMAND_NAME_RE = re.compile(r"<command-name>(.*?)</command-name>", re.DOTALL)
+_COMMAND_ARGS_RE = re.compile(r"<command-args>(.*?)</command-args>", re.DOTALL)
+
+
+def _clean_slash_command(text):
+    """Reconstruct the plain "/foo args" a slash command invocation actually
+    typed from Claude Code's <command-name>/<command-args> log wrapper, or
+    None if `text` isn't one."""
+    name_match = _COMMAND_NAME_RE.search(text)
+    if not name_match:
+        return None
+    name = name_match.group(1).strip()
+    args_match = _COMMAND_ARGS_RE.search(text)
+    args = args_match.group(1).strip() if args_match else ""
+    return f"{name} {args}".strip() if args else name
 
 
 def _extract_prompt_text(content):
@@ -30,7 +53,13 @@ def _extract_prompt_text(content):
     "user" line is really just a wrapped tool result / has no text."""
     if isinstance(content, str):
         text = content.strip()
-        return text if text else None
+        if not text:
+            return None
+        if "<command-name>" in text:
+            cleaned = _clean_slash_command(text)
+            if cleaned:
+                return cleaned
+        return text
     if isinstance(content, list):
         parts = [
             block.get("text", "")

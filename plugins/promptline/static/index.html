@@ -9,35 +9,35 @@
 <body>
 <header class="topbar">
   <div class="topbar-row brand-row">
-    <h1 class="brand">promptline<span class="cursor">_</span></h1>
+    <h1><button type="button" id="brand-btn" class="brand">promptline<span class="cursor">_</span></button></h1>
     <span id="live-dot" class="live-dot" title="Live updates">●</span>
   </div>
-
-  <div id="filter-controls" class="topbar-row filter-controls hidden">
-    <button type="button" id="back-btn" class="pill-btn ghost-pill">&lsaquo; back</button>
-
-    <div class="pill-toggle" role="tablist">
-      <button data-sort="newest" class="pill-btn sort-btn active">newest</button>
-      <button data-sort="oldest" class="pill-btn sort-btn">oldest</button>
-    </div>
-
-    <label class="search-wrap">
-      <span class="prompt-glyph">&gt;</span>
-      <input id="search" type="search" placeholder="search…" autocomplete="off">
-    </label>
-
-    <span id="date-chip" class="date-chip hidden">
-      <span class="date-chip-label"></span>
-      <button type="button" class="date-chip-clear" aria-label="Clear date filter">&times;</button>
-    </span>
-
-    <select id="project-filter">
-      <option value="">all projects</option>
-    </select>
-
-    <button type="button" id="copy-all-btn" class="pill-btn ghost-pill">copy transcript</button>
-  </div>
 </header>
+
+<div id="filter-controls" class="filter-controls hidden">
+  <button type="button" id="back-btn" class="pill-btn ghost-pill">&lsaquo; back</button>
+
+  <div class="pill-toggle" role="tablist">
+    <button data-sort="newest" class="pill-btn sort-btn active">newest</button>
+    <button data-sort="oldest" class="pill-btn sort-btn">oldest</button>
+  </div>
+
+  <label class="search-wrap">
+    <span class="prompt-glyph">&gt;</span>
+    <input id="search" type="search" placeholder="search…" autocomplete="off">
+  </label>
+
+  <span id="date-chip" class="date-chip hidden">
+    <span class="date-chip-label"></span>
+    <button type="button" class="date-chip-clear" aria-label="Clear date filter">&times;</button>
+  </span>
+
+  <select id="project-filter">
+    <option value="">all projects</option>
+  </select>
+
+  <button type="button" id="copy-all-btn" class="pill-btn ghost-pill">copy transcript</button>
+</div>
 
 <main id="content"></main>
 
@@ -58,10 +58,10 @@
       <div class="entry-prompt collapsible"></div>
       <button class="show-more-btn hidden">more</button>
     </div>
-    <div class="entry-block">
+    <div class="entry-block entry-response-block collapsed">
       <span class="entry-label">claude</span>
-      <div class="entry-response collapsible"></div>
-      <button class="show-more-btn hidden">more</button>
+      <div class="entry-response"></div>
+      <button type="button" class="response-toggle-btn">show response</button>
     </div>
   </article>
 </template>
