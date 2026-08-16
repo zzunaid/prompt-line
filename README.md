@@ -30,6 +30,18 @@ Or install it as a Claude Code plugin and run it from inside a session:
 
 Then `/promptline:dashboard` any time to start it and get the URL.
 
+### Updating
+
+If installed via a direct clone, `git pull` picks up changes immediately.
+If installed as a plugin, updates are pull-based — Claude Code won't notify
+you that a new version exists. Check periodically with:
+
+```
+/plugin marketplace update promptline
+/plugin update promptline@promptline
+/reload-plugins
+```
+
 ## What it does
 
 - **Overview**: session/message/token stats, streaks, peak hour, favorite
