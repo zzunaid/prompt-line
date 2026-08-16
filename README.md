@@ -28,6 +28,10 @@ Or install it as a Claude Code plugin and run it from inside a session:
 /reload-plugins
 ```
 
+`/reload-plugins` requires Claude Code v2.1.221+; on older versions it
+won't be recognized as a command — just fully quit and restart Claude Code
+instead, which has the same effect.
+
 Then `/promptline:dashboard` any time to start it and get the URL.
 
 ### Updating
