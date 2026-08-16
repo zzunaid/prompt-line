@@ -1,7 +1,6 @@
 {
   "name": "promptline",
-  "displayName": "Promptline",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Local, read-only visual timeline of your Claude Code prompt history - dashboard, activity heatmap, and searchable per-project/session feed. Binds to 127.0.0.1 only, no outbound network calls, nothing written back to ~/.claude.",
   "author": { "name": "zzunaid" }
 }
