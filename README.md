@@ -10,6 +10,10 @@ Fully local: reads `~/.claude/projects/`, binds to `127.0.0.1` only, makes
 no outbound network calls, never writes anything back. Stdlib Python only
 — no dependencies, no build step.
 
+Claude Code deletes session logs after 30 days by default, so that's the
+practical history window here too. To keep logs longer, raise
+`cleanupPeriodDays` in your Claude Code `settings.json`.
+
 ## Running it
 
 ```bash
@@ -58,6 +62,17 @@ you that a new version exists. Check periodically with:
   your actual prompts and Claude's responses (responses collapse by
   default, click "show response"), with a copy button for handing a past
   exchange back to a new conversation as context.
+
+### Why not just CLAUDE.md / auto memory?
+
+Claude Code only carries knowledge across sessions through CLAUDE.md
+(instructions you write) and auto memory (notes Claude writes itself) —
+everything else in a closed session's context is gone once that session
+ends. Promptline doesn't replace either of those or automate memory the
+way a tool like [claude-mem](https://github.com/thedotmack/claude-mem)
+does; it's the retrieval half of that workflow — a way to find what you
+actually said in a past session so you can explicitly paste it into a new
+one or promote it into a CLAUDE.md yourself.
 
 ## Files
 
